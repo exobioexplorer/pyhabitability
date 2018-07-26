@@ -26,7 +26,7 @@ def convective_heat_flux(D, Omega, Rosby_on_Rosby_e=1.0):
     F = F_earth * Rosby_on_Rosby_e**2 * (D/D_earth)**(2/3.) * (Omega/Omega_earth)**(7/3.)
     return F.to(u.m**2/u.s**3)
     
-def magnetic_dipole_errors(R, R_err, M, M_err, Omega, n_samp=1000):
+def magnetic_dipole_errors(R, R_err, M, M_err, Omega, n_samp=1000, M_earth=None, M_earlyearth=None, M_mars=None):
     Rs = R + R_err*np.random.normal(size=n_samp)
     Ms = M + M_err*np.random.normal(size=n_samp)
     #pdb.set_trace()
@@ -34,7 +34,11 @@ def magnetic_dipole_errors(R, R_err, M, M_err, Omega, n_samp=1000):
     Ds = 0.65*r0s
     Fs = convective_heat_flux(Ds, Omega)
     M_dipoles = magnetic_dipole(r0s, Ds, Fs)
-    return np.mean(M_dipoles), np.std(M_dipoles)
+    if M_earth is None:
+        return np.mean(M_dipoles), np.std(M_dipoles), np.percentile(M_dipoles, 90)
+    else
+        probabilities = [np.mean(M_dipoles > M_earth), np.mean(M_dipoles > M_earlyearth), np.mean(M_dipoles > M_mars)]
+        return np.mean(M_dipoles), np.std(M_dipoles), np.percentile(M_dipoles, 90), probabilities
     
 if __name__ == "__main__":
     r_0 = core_radius(1.0, 1.0)#Should be 3.86e6*u.m
@@ -42,4 +46,4 @@ if __name__ == "__main__":
     F = convective_heat_flux(0.65*3.86e6*u.m, 2*np.pi/u.d)
     print(M)
     print(F)
-    M, M_err = magnetic_dipole_errors(1.288, 0.1344, 2.73, 0.553, 0.1*Omega_earth)
+    M, M_err, M_90, probabilities = magnetic_dipole_errors(1.288, 0.1344, 2.73, 0.553, 0.1*Omega_earth)
